@@ -242,20 +242,22 @@ export const googleSignup = async (req, res) => {
       });
     }
 
-    const token = await genToken(newUser);
+    const token = await genToken(user);
 
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: false,
-  sameSite: "lax",
-  maxAge: 24 * 60 * 60 * 1000,
-});
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
-return res.status(201).json({
-  message: "User created successfully",
-  token,          // ✅ ADD THIS
-  user: newUser,
-});
+    return res.status(201).json({
+      success: true,
+      message: "Google signup successful",
+      token,
+      user,
+    });
+
   } catch (error) {
     console.error("GOOGLE SIGNUP ERROR:", error);
 

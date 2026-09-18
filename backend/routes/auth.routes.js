@@ -11,7 +11,7 @@ import {
   googleSignin,
   //googleAuth
 } from "../controllers/auth.controller.js";
-import { auth } from "../../frontend/firebase.js";
+
 
 const authRouter = express.Router();
 

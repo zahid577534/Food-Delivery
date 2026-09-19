@@ -22,7 +22,10 @@ connectDB();
 
 // MIDDLEWARES
 app.use(cors({
-  origin: "https://lucid-simplicity-production-df26.up.railway.app",
+  origin: [
+    "https://lucid-simplicity-production-df26.up.railway.app",
+    "http://localhost:5173"
+  ],
   credentials: true,
 }));
 

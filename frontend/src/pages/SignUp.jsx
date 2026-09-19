@@ -16,7 +16,7 @@ const SignUp = () => {
   const bgColor = "#fff9f6";
   const borderColor = "#ddd";
 
-  const serverUrl = "http://localhost:8000";
+  const serverUrl = import.meta.env.VITE_SERVER_URL;
 
   const navigate = useNavigate();
 

@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { logout } from "../redux/userSlice";
 import { useNavigate } from "react-router-dom";
 
-const serverUrl = "http://localhost:8000";
+const serverUrl = import.meta.env.VITE_SERVER_URL;
 
 const handleSignOut = async () => {
   const dispatch = useDispatch();

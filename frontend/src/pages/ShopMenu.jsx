@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -65,6 +64,8 @@ const ShopMenu = () => {
         );
 
         console.log("SELECTED SHOP:", selectedShop);
+        console.log("SELECTED SHOP:", selectedShop);
+        console.log("SHOP ITEMS:", selectedShop?.items);
 
         if (!selectedShop) {
           setError("Shop not found.");
@@ -274,108 +275,146 @@ const ShopMenu = () => {
           ==================================== */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 
-            {shop.items.map((item) => (
+            {shop.items.map((item) => {
 
-              <div
-                key={item._id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-200"
-              >
+              // ==================================
+              // DISCOUNT CALCULATION
+              // ==================================
+              const originalPrice = Number(item.price);
+              const discount = Number(item.discount || 0);
 
-                {/* PRODUCT CONTENT */}
-                <div className="p-2.5 flex gap-3">
+              const discountedPrice =
+                originalPrice -
+                (originalPrice * discount) / 100;
 
-                  {/* PRODUCT THUMBNAIL */}
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-16 h-16 sm:w-[72px] sm:h-[72px] object-cover rounded-lg flex-shrink-0"
-                  />
+              return (
+                <div
+                  key={item._id}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-200"
+                >
 
-                  {/* PRODUCT INFORMATION */}
-                  <div className="flex-1 min-w-0">
+                  {/* PRODUCT CONTENT */}
+                  <div className="p-2.5 flex gap-3">
 
-                    {/* NAME */}
-                    <h3
-                      className="text-sm font-semibold text-gray-800 truncate"
-                      title={item.name}
-                    >
-                      {item.name}
-                    </h3>
+                    {/* PRODUCT THUMBNAIL */}
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-16 h-16 sm:w-[72px] sm:h-[72px] object-cover rounded-lg flex-shrink-0"
+                    />
 
-                    {/* CATEGORY */}
-                    <p className="text-[11px] text-gray-400 truncate mt-0.5">
-                      {item.category || "General"}
-                    </p>
+                    {/* PRODUCT INFORMATION */}
+                    <div className="flex-1 min-w-0">
 
-                    {/* DESCRIPTION */}
-                    {item.description && (
-                      <p className="text-[11px] text-gray-500 line-clamp-2 mt-1 leading-4">
-                        {item.description}
+                      {/* NAME */}
+                      <h3
+                        className="text-sm font-semibold text-gray-800 truncate"
+                        title={item.name}
+                      >
+                        {item.name}
+                      </h3>
+
+                      {/* CATEGORY */}
+                      <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                        {item.category || "General"}
                       </p>
-                    )}
 
-                    {/* PRICE + UNIT */}
-                    <div className="flex items-center justify-between mt-2">
+                      {/* DESCRIPTION */}
+                      {item.description && (
+                        <p className="text-[11px] text-gray-500 line-clamp-2 mt-1 leading-4">
+                          {item.description}
+                        </p>
+                      )}
 
-                      <div className="min-w-0">
+                      {/* PRICE + UNIT */}
+                      <div className="flex items-center justify-between mt-2">
 
-                        <span className="text-sm font-bold text-orange-600">
-                          Rs. {item.price}
-                        </span>
+                        <div className="min-w-0">
 
-                        {item.unit && (
-                          <span className="text-[10px] text-gray-400 ml-1">
-                            / {item.unit}
-                          </span>
-                        )}
+                          {discount > 0 ? (
+                            <div className="flex items-center gap-1 flex-wrap">
+
+                              {/* ORIGINAL PRICE */}
+                              <span className="text-xs text-gray-400 line-through">
+                                Rs. {originalPrice.toFixed(0)}
+                              </span>
+
+                              {/* DISCOUNTED PRICE */}
+                              <span className="text-sm font-bold text-orange-600">
+                                Rs. {discountedPrice.toFixed(0)}
+                              </span>
+
+                              {/* DISCOUNT */}
+                              <span className="bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                                {discount}% OFF
+                              </span>
+
+                            </div>
+                          ) : (
+                            <span className="text-sm font-bold text-orange-600">
+                              Rs. {originalPrice.toFixed(0)}
+                            </span>
+                          )}
+
+                          {/* UNIT */}
+                          {item.unit && (
+                            <span className="text-[10px] text-gray-400 ml-1">
+                              / {item.unit}
+                            </span>
+                          )}
+
+                        </div>
+
+                        {/* ADD BUTTON */}
+                        <button
+                          onClick={() => {
+
+                            const cartItem = {
+                              itemId: item._id,
+                              name: item.name,
+                              description: item.description,
+                              image: item.image,
+
+                              // IMPORTANT
+                              originalPrice: originalPrice,
+                              discount: discount,
+                              price: discountedPrice,
+
+                              unit: item.unit,
+                              category: item.category,
+                              shopId: shop._id,
+                              shopName: shop.name,
+                            };
+
+                            console.log(
+                              "ADDING TO CART:",
+                              cartItem
+                            );
+
+                            dispatch(addToCart(cartItem));
+
+                            setToast({
+                              show: true,
+                              message: `${item.name} added to cart`,
+                              type: "success",
+                            });
+
+                          }}
+                          className="w-7 h-7 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 active:scale-95 transition flex-shrink-0"
+                          title="Add to cart"
+                        >
+                          +
+                        </button>
 
                       </div>
-
-                      {/* ADD BUTTON */}
-                      <button
-                        onClick={() => {
-
-                          const cartItem = {
-                            itemId: item._id,
-                            name: item.name,
-                            description: item.description,
-                            image: item.image,
-                            price: Number(item.price),
-                            unit: item.unit,
-                            category: item.category,
-                            shopId: shop._id,
-                            shopName: shop.name,
-                          };
-
-                          console.log(
-                            "ADDING TO CART:",
-                            cartItem
-                          );
-
-                          dispatch(addToCart(cartItem));
-
-                          setToast({
-                            show: true,
-                            message: `${item.name} added to cart`,
-                            type: "success",
-                          });
-
-                        }}
-                        className="w-7 h-7 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 active:scale-95 transition flex-shrink-0"
-                        title="Add to cart"
-                      >
-                        +
-                      </button>
 
                     </div>
 
                   </div>
 
                 </div>
-
-              </div>
-
-            ))}
+              );
+            })}
 
           </div>
 
@@ -388,4 +427,3 @@ const ShopMenu = () => {
 };
 
 export default ShopMenu;
-

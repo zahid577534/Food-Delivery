@@ -14,9 +14,12 @@ export const createOrder = async (req, res) => {
       paymentStatus,
     } = req.body;
 
-    const userId = req.user?.id || req.user?._id;
+    const userId =
+      req.user?.id || req.user?._id;
 
-    // Check logged-in user
+    // ==========================================
+    // CHECK LOGGED-IN USER
+    // ==========================================
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -24,7 +27,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Validate shop
+    // ==========================================
+    // VALIDATE SHOP
+    // ==========================================
     if (!shop) {
       return res.status(400).json({
         success: false,
@@ -32,7 +37,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Validate items
+    // ==========================================
+    // VALIDATE ITEMS
+    // ==========================================
     if (!items || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -40,7 +47,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Validate delivery address
+    // ==========================================
+    // VALIDATE DELIVERY ADDRESS
+    // ==========================================
     if (!deliveryAddress) {
       return res.status(400).json({
         success: false,
@@ -60,20 +69,34 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Calculate items subtotal on server
-    const itemsSubtotal = items.reduce((total, item) => {
-      return total + item.price * item.quantity;
-    }, 0);
+    // ==========================================
+    // CALCULATE ITEMS SUBTOTAL
+    // ==========================================
+    const itemsSubtotal = items.reduce(
+      (total, item) => {
+        return (
+          total +
+          item.price * item.quantity
+        );
+      },
+      0
+    );
 
-    // Initially owner has not added any charges or discount
+    // ==========================================
+    // INITIAL PRICING
+    // OWNER WILL SET THESE WHEN APPROVING
+    // ==========================================
     const deliveryCharges = 0;
     const discount = 0;
 
-    // Initial total
     const totalAmount =
-      itemsSubtotal + deliveryCharges - discount;
+      itemsSubtotal +
+      deliveryCharges -
+      discount;
 
-    // Create order
+    // ==========================================
+    // CREATE ORDER
+    // ==========================================
     const order = await Order.create({
       user: userId,
       shop,
@@ -86,8 +109,11 @@ export const createOrder = async (req, res) => {
 
       deliveryAddress,
 
-      paymentMethod: paymentMethod || "cash",
-      paymentStatus: paymentStatus || "unpaid",
+      paymentMethod:
+        paymentMethod || "cash",
+
+      paymentStatus:
+        paymentStatus || "unpaid",
     });
 
     return res.status(201).json({
@@ -97,7 +123,10 @@ export const createOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("createOrder ERROR:", error);
+    console.error(
+      "createOrder ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -109,12 +138,19 @@ export const createOrder = async (req, res) => {
 
 // ==========================================
 // GET MY ORDERS
+// CUSTOMER
 // ==========================================
-export const getMyOrders = async (req, res) => {
+export const getMyOrders = async (
+  req,
+  res
+) => {
   try {
     const userId =
       req.user?.id || req.user?._id;
 
+    // ==========================================
+    // CHECK LOGGED-IN USER
+    // ==========================================
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -122,11 +158,16 @@ export const getMyOrders = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // FIND CUSTOMER ORDERS
+    // ==========================================
     const orders = await Order.find({
       user: userId,
     })
       .populate("shop")
-      .sort({ createdAt: -1 });
+      .sort({
+        createdAt: -1,
+      });
 
     return res.status(200).json({
       success: true,
@@ -146,14 +187,23 @@ export const getMyOrders = async (req, res) => {
     });
   }
 };
+
+
 // ==========================================
-// GET OWNER ORDERS
+// GET ALL ORDERS FROM ALL OWNER SHOPS
+// OWNER
 // ==========================================
-export const getOwnerOrders = async (req, res) => {
+export const getOwnerOrders = async (
+  req,
+  res
+) => {
   try {
     const userId =
       req.user?.id || req.user?._id;
 
+    // ==========================================
+    // CHECK LOGGED-IN USER
+    // ==========================================
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -161,25 +211,47 @@ export const getOwnerOrders = async (req, res) => {
       });
     }
 
-    // Find owner's shop
-    const shop = await Shop.findOne({
+    // ==========================================
+    // FIND ALL SHOPS BELONGING TO THIS OWNER
+    // ==========================================
+    const shops = await Shop.find({
       owner: userId,
-    });
+    }).select("_id name");
 
-    if (!shop) {
-      return res.status(404).json({
-        success: false,
-        message: "Shop not found",
+    // ==========================================
+    // OWNER HAS NO SHOPS
+    // ==========================================
+    if (shops.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        orders: [],
       });
     }
 
-    // Find orders for this shop
+    // ==========================================
+    // GET ALL SHOP IDs
+    // ==========================================
+    const shopIds = shops.map(
+      (shop) => shop._id
+    );
+
+    // ==========================================
+    // FIND ORDERS FROM ALL OWNER SHOPS
+    // ==========================================
     const orders = await Order.find({
-      shop: shop._id,
+      shop: {
+        $in: shopIds,
+      },
     })
-      .populate("user", "-password")
+      .populate(
+        "user",
+        "-password"
+      )
       .populate("shop")
-      .sort({ createdAt: -1 });
+      .sort({
+        createdAt: -1,
+      });
 
     return res.status(200).json({
       success: true,
@@ -199,22 +271,20 @@ export const getOwnerOrders = async (req, res) => {
     });
   }
 };
-// ==========================================
-// UPDATE ORDER STATUS - OWNER
-// ==========================================
-
-// ==========================================
-// UPDATE ORDER STATUS - OWNER
-// ==========================================
-
 
 
 // ==========================================
-// UPDATE ORDER STATUS - OWNER
+// UPDATE ORDER STATUS
+// OWNER
 // ==========================================
-export const updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (
+  req,
+  res
+) => {
   try {
-    const { orderId } = req.params;
+    const { orderId } =
+      req.params;
+
     const {
       status,
       deliveryCharges,
@@ -237,14 +307,16 @@ export const updateOrderStatus = async (req, res) => {
     // ==========================================
     // VALIDATE ORDER STATUS
     // ==========================================
+    const allowedStatuses = [
+      "confirmed",
+      "preparing",
+      "out-for-delivery",
+      "delivered",
+      "cancelled",
+    ];
+
     if (
-      ![
-        "confirmed",
-        "preparing",
-        "out-for-delivery",
-        "delivered",
-        "cancelled",
-      ].includes(status)
+      !allowedStatuses.includes(status)
     ) {
       return res.status(400).json({
         success: false,
@@ -253,23 +325,36 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // ==========================================
-    // FIND OWNER'S SHOP
+    // FIND ALL SHOPS BELONGING TO OWNER
     // ==========================================
-    const shop = await Shop.findOne({
+    const shops = await Shop.find({
       owner: userId,
-    });
+    }).select("_id");
 
-    if (!shop) {
+    // ==========================================
+    // OWNER HAS NO SHOPS
+    // ==========================================
+    if (shops.length === 0) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to update orders",
+        message:
+          "You are not authorized to update orders",
       });
     }
 
     // ==========================================
+    // GET ALL OWNER SHOP IDs
+    // ==========================================
+    const shopIds = shops.map(
+      (shop) =>
+        shop._id.toString()
+    );
+
+    // ==========================================
     // FIND ORDER
     // ==========================================
-    const order = await Order.findById(orderId);
+    const order =
+      await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -279,11 +364,13 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // ==========================================
-    // VERIFY ORDER BELONGS TO OWNER'S SHOP
+    // VERIFY ORDER BELONGS TO ONE
+    // OF OWNER'S SHOPS
     // ==========================================
     if (
-      order.shop.toString() !==
-      shop._id.toString()
+      !shopIds.includes(
+        order.shop.toString()
+      )
     ) {
       return res.status(403).json({
         success: false,
@@ -299,13 +386,22 @@ export const updateOrderStatus = async (req, res) => {
       status === "confirmed" &&
       order.status === "pending"
     ) {
+      // ==========================================
+      // CONVERT VALUES TO NUMBERS
+      // ==========================================
       const finalDeliveryCharges =
-        Number(deliveryCharges || 0);
+        Number(
+          deliveryCharges || 0
+        );
 
       const finalDiscount =
-        Number(discount || 0);
+        Number(
+          discount || 0
+        );
 
-      // Prevent negative values
+      // ==========================================
+      // PREVENT NEGATIVE VALUES
+      // ==========================================
       if (
         finalDeliveryCharges < 0 ||
         finalDiscount < 0
@@ -317,7 +413,9 @@ export const updateOrderStatus = async (req, res) => {
         });
       }
 
-      // Prevent discount greater than subtotal + delivery
+      // ==========================================
+      // PREVENT DISCOUNT FROM EXCEEDING TOTAL
+      // ==========================================
       if (
         finalDiscount >
         order.itemsSubtotal +
@@ -330,33 +428,50 @@ export const updateOrderStatus = async (req, res) => {
         });
       }
 
-      // Save pricing
+      // ==========================================
+      // SAVE DELIVERY CHARGES
+      // ==========================================
       order.deliveryCharges =
         finalDeliveryCharges;
 
+      // ==========================================
+      // SAVE DISCOUNT
+      // ==========================================
       order.discount =
         finalDiscount;
 
+      // ==========================================
+      // CALCULATE FINAL TOTAL
+      // ==========================================
       order.totalAmount =
         order.itemsSubtotal +
         finalDeliveryCharges -
         finalDiscount;
 
-      // Generate receipt
+      // ==========================================
+      // GENERATE RECEIPT NUMBER
+      // ==========================================
       const receiptNumber =
         `FD-${Date.now()}-${Math.floor(
-          1000 + Math.random() * 9000
+          1000 +
+            Math.random() * 9000
         )}`;
 
       order.receiptNumber =
         receiptNumber;
 
+      // ==========================================
+      // PAYMENT INFORMATION
+      // ==========================================
       order.paymentStatus =
         "unpaid";
 
       order.paymentMethod =
         "cash";
 
+      // ==========================================
+      // SAVE APPROVAL DATE
+      // ==========================================
       order.approvedAt =
         new Date();
     }
@@ -368,12 +483,17 @@ export const updateOrderStatus = async (req, res) => {
 
     await order.save();
 
+    // ==========================================
+    // RETURN UPDATED ORDER
+    // ==========================================
     return res.status(200).json({
       success: true,
+
       message:
         status === "confirmed"
           ? "Order approved and payment receipt generated"
           : "Order status updated successfully",
+
       order,
     });
 
@@ -389,6 +509,3 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
 };
-
-
-

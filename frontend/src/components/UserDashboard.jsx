@@ -13,6 +13,8 @@ import {
   FaClock,
   FaShoppingCart,
   FaPlus,
+  FaFacebook,
+  FaWhatsapp,
 } from "react-icons/fa";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -209,7 +211,51 @@ const UserDashboard = () => {
   const openShop = (shopId) => {
     navigate(`/shop/${shopId}`);
   };
+// =========================
+// FACEBOOK
+// =========================
 
+const openFacebook = (facebookPage) => {
+  if (!facebookPage) return;
+
+  let url = facebookPage.trim();
+
+  // Add https:// if owner entered only www.facebook.com/...
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
+// =========================
+// WHATSAPP
+// =========================
+
+const openWhatsApp = (whatsapp) => {
+  if (!whatsapp) return;
+
+  let number = whatsapp.replace(/\D/g, "");
+
+  // Convert Pakistani number:
+  // 03001234567 → 923001234567
+  if (number.startsWith("03")) {
+    number = `92${number.substring(1)}`;
+  }
+
+  // If owner already entered 92XXXXXXXXXX
+  if (!number.startsWith("92")) {
+    number = `92${number}`;
+  }
+
+  const whatsappUrl = `https://wa.me/${number}`;
+
+  window.open(
+    whatsappUrl,
+    "_blank",
+    "noopener,noreferrer"
+  );
+};
   // =========================
   // CART COUNT
   // =========================
@@ -529,20 +575,72 @@ const UserDashboard = () => {
             VIEW FULL MENU
         ========================= */}
 
-                  <div className="px-3 pb-2">
+                  {/* =========================
+    SHOP ACTIONS
+========================= */}
 
-                    <button
-                      onClick={() => openShop(shop._id)}
-                      className="w-full border border-[#ff4d2d]
-            text-[#ff4d2d] py-1.5 rounded-lg
-            text-sm font-semibold
-            hover:bg-[#ff4d2d]
-            hover:text-white transition"
-                    >
-                      View Full Menu
-                    </button>
+<div className="px-3 pb-3">
 
-                  </div>
+  <div className="flex gap-2">
+
+    {/* VIEW MENU */}
+
+    <button
+      onClick={() => openShop(shop._id)}
+      className="flex-1 border border-[#ff4d2d]
+      text-[#ff4d2d] py-2 rounded-lg
+      text-sm font-semibold
+      hover:bg-[#ff4d2d]
+      hover:text-white transition"
+    >
+      View Full Menu
+    </button>
+
+    {/* WHATSAPP */}
+
+    {shop.whatsapp && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          openWhatsApp(shop.whatsapp);
+        }}
+        className="w-10 h-10 flex-shrink-0
+        rounded-lg bg-green-50
+        text-green-600
+        flex items-center justify-center
+        hover:bg-green-600
+        hover:text-white
+        transition"
+        title="Contact on WhatsApp"
+      >
+        <FaWhatsapp size={20} />
+      </button>
+    )}
+
+    {/* FACEBOOK */}
+
+    {shop.facebookPage && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          openFacebook(shop.facebookPage);
+        }}
+        className="w-10 h-10 flex-shrink-0
+        rounded-lg bg-blue-50
+        text-blue-600
+        flex items-center justify-center
+        hover:bg-blue-600
+        hover:text-white
+        transition"
+        title="Visit Facebook Page"
+      >
+        <FaFacebook size={18} />
+      </button>
+    )}
+
+  </div>
+
+</div>
 
 
                   {/* =========================

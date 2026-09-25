@@ -1,30 +1,59 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const ownerSlice = createSlice({
-  name: "owner",
-  initialState: {
-    myShopData: JSON.parse(localStorage.getItem("shop")) || null,
-    
-  },
-  reducers: {
-  setMyShopData(state, action) {
-  state.myShopData = action.payload;
-  localStorage.setItem(
-    "shop",
-    JSON.stringify(action.payload)
+const savedShops =
+  localStorage.getItem("shops");
+
+let initialShops = [];
+
+try {
+  initialShops = savedShops
+    ? JSON.parse(savedShops)
+    : [];
+} catch (error) {
+  console.error(
+    "Invalid shops data in localStorage:",
+    error
   );
 
+  localStorage.removeItem("shops");
+
+  initialShops = [];
+}
+
+const ownerSlice = createSlice({
+  name: "owner",
+
+  initialState: {
+    myShops: initialShops,
+  },
+
+  reducers: {
+    setMyShops(state, action) {
+      state.myShops = action.payload;
+
+      localStorage.setItem(
+        "shops",
+        JSON.stringify(action.payload)
+      );
     },
+
     setCity(state, action) {
       state.city = action.payload;
     },
-  logout(state) {
-  state.myShopData = null;
-  localStorage.removeItem("shop");
-  localStorage.removeItem("token");
-}
+
+    logout(state) {
+      state.myShops = [];
+
+      localStorage.removeItem("shops");
+      localStorage.removeItem("token");
+    },
   },
 });
 
-export const { setMyShopData } = ownerSlice.actions;
+export const {
+  setMyShops,
+  setCity,
+  logout,
+} = ownerSlice.actions;
+
 export default ownerSlice.reducer;

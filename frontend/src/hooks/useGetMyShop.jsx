@@ -1,22 +1,29 @@
+
 import axios from "axios";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setMyShopData } from "../redux/ownerSlice";
+import { setMyShops } from "../redux/ownerSlice";
 
 function useGetMyShop() {
   const dispatch = useDispatch();
 
-  const { user } = useSelector((state) => state.user);
+  const { user } = useSelector(
+    (state) => state.user
+  );
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL;
+  const serverUrl =
+    import.meta.env.VITE_SERVER_URL;
 
   useEffect(() => {
-    const fetchShop = async () => {
+    const fetchShops = async () => {
+
+      // Only owners need shops
       if (!user || user.role !== "owner") {
         return;
       }
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
         console.log("No token found");
@@ -24,41 +31,54 @@ function useGetMyShop() {
       }
 
       try {
+
         const result = await axios.get(
           `${serverUrl}/api/shop/get-my`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+
             withCredentials: true,
           }
         );
 
         console.log(
-          "MY SHOP FROM SERVER:",
+          "MY SHOPS FROM SERVER:",
           result.data
         );
 
         if (result.data.success) {
+
           dispatch(
-            setMyShopData(result.data.shop)
+            setMyShops(
+              result.data.shops || []
+            )
           );
+
         }
 
       } catch (error) {
+
         console.error(
-          "Error fetching my shop:",
+          "Error fetching my shops:",
           error.response?.data ||
             error.message
         );
+
       }
     };
 
-    fetchShop();
+    fetchShops();
 
-  }, [dispatch, serverUrl, user]);
+  }, [
+    dispatch,
+    serverUrl,
+    user,
+  ]);
 
   return null;
 }
 
 export default useGetMyShop;
+

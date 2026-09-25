@@ -1,7 +1,10 @@
+
 import express from "express";
 
 import {
-  createEditShop,
+  createShop,
+  updateShop,
+  deleteShop,
   getMyShop,
   getShopsByCity,
   getShopById,
@@ -12,32 +15,65 @@ import upload from "../middlewares/multer.js";
 
 const shopRouter = express.Router();
 
-// Owner creates/edits shop
+
+// ==========================================
+// CREATE NEW SHOP
+// ==========================================
 shopRouter.post(
-  "/create-edit",
+  "/create",
   isAuth,
   upload.single("image"),
-  createEditShop
+  createShop
 );
 
-// Owner gets his shop
+
+// ==========================================
+// UPDATE EXISTING SHOP
+// ==========================================
+shopRouter.put(
+  "/update/:shopId",
+  isAuth,
+  upload.single("image"),
+  updateShop
+);
+
+
+// ==========================================
+// GET ALL SHOPS OF LOGGED-IN OWNER
+// ==========================================
 shopRouter.get(
   "/get-my",
   isAuth,
   getMyShop
 );
 
-// User gets shops in his city
+
+// ==========================================
+// GET SHOPS BY CITY
+// ==========================================
 shopRouter.get(
   "/get-shops",
   isAuth,
   getShopsByCity
 );
 
-// User gets a single shop by ID
+
+// ==========================================
+// GET ONE SHOP BY ID
+// ==========================================
 shopRouter.get(
   "/get-shop/:shopId",
   getShopById
 );
+// ==========================================
+// DELETE SHOP
+// ==========================================
+
+shopRouter.delete(
+  "/delete/:shopId",
+  isAuth,
+  deleteShop
+);
 
 export default shopRouter;
+

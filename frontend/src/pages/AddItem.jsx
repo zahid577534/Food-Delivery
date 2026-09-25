@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { IoIosSkipBackward } from "react-icons/io";
 import { FaShoppingBasket } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { serverUrl } from "../config";
-import { useDispatch } from "react-redux";
-import { setMyShopData } from "../redux/ownerSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { setMyShops } from "../redux/ownerSlice";
 
 const categories = [
   "Fruits & Vegetables",
@@ -62,6 +62,16 @@ const unitOptions = {
 const AddItem = () => {
   const navigate = useNavigate();
 
+  // Get shopId from URL
+  const { shopId } = useParams();
+
+  const dispatch = useDispatch();
+
+  // Get all owner's shops from Redux
+  const { myShops } = useSelector(
+    (state) => state.owner
+  );
+
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [discount, setDiscount] = useState("0");
@@ -71,22 +81,42 @@ const AddItem = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
-  const dispatch = useDispatch();
+
+  // Find the selected shop
+  const selectedShop = myShops.find(
+    (shop) => shop._id === shopId
+  );
+
   const handleImage = (e) => {
     const file = e.target.files[0];
 
     if (!file) return;
 
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(
+      URL.createObjectURL(file)
+    );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Make sure a shop was selected
+    if (!shopId) {
+      alert("Shop not selected.");
+      return;
+    }
+
+    if (!selectedShop) {
+      alert("Shop not found.");
+      return;
+    }
+
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+
+      const token =
+        localStorage.getItem("token");
 
       const formData = new FormData();
 
@@ -96,12 +126,17 @@ const AddItem = () => {
       formData.append("category", category);
       formData.append("foodType", foodType);
       formData.append("unit", unit);
+
       if (imageFile) {
-        formData.append("image", imageFile);
+        formData.append(
+          "image",
+          imageFile
+        );
       }
 
+      // Send shopId in the URL
       const response = await axios.post(
-        `${serverUrl}/api/item/add-item`,
+        `${serverUrl}/api/item/add-item/${shopId}`,
         formData,
         {
           headers: {
@@ -111,31 +146,62 @@ const AddItem = () => {
       );
 
       if (response.data.success) {
-        dispatch(setMyShopData(response.data));
+        // Replace the updated shop in Redux
+        const updatedShop =
+          response.data.shop;
+
+        const updatedShops =
+          myShops.map((shop) =>
+            shop._id === updatedShop._id
+              ? updatedShop
+              : shop
+          );
+
+        dispatch(
+          setMyShops(updatedShops)
+        );
 
         alert("Item added successfully!");
 
-        navigate("/");
+        // Return to owner dashboard
+        navigate("/owner");
       }
+
     } catch (error) {
       console.log(error.response);
 
       if (error.response) {
-        console.log("Status:", error.response.status);
-        console.log("Data:", error.response.data);
+        console.log(
+          "Status:",
+          error.response.status
+        );
 
-        alert(error.response.data.message);
+        console.log(
+          "Data:",
+          error.response.data
+        );
+
+        alert(
+          error.response.data.message
+        );
       } else {
-        alert("Something went wrong.");
+        alert(
+          "Something went wrong."
+        );
       }
+
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-orange-50 p-6">
+
+      {/* Back Button */}
       <div
         className="absolute top-5 left-5 cursor-pointer"
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/owner")}
       >
         <IoIosSkipBackward
           size={28}
@@ -144,20 +210,36 @@ const AddItem = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg">
+
         <div className="text-center mb-8">
+
           <div className="inline-flex bg-orange-100 rounded-full p-4">
-            <FaShoppingBasket className="w-14 h-14 text-[#ff4d2d]" />
+            <FaShoppingBasket
+              className="w-14 h-14 text-[#ff4d2d]"
+            />
           </div>
 
           <h1 className="text-3xl font-bold mt-4">
             Add Grocery Item
           </h1>
+
+          {/* Show selected shop */}
+          {selectedShop && (
+            <p className="text-gray-500 mt-2">
+              Adding item to:{" "}
+              <span className="font-semibold text-[#ff4d2d]">
+                {selectedShop.name}
+              </span>
+            </p>
+          )}
+
         </div>
 
         <form
           onSubmit={handleSubmit}
           className="space-y-5"
         >
+
           {/* Item Name */}
           <div>
             <label className="block mb-2">
@@ -193,6 +275,7 @@ const AddItem = () => {
               required
             />
           </div>
+
           {/* Discount */}
           <div>
             <label className="block mb-2">
@@ -289,9 +372,7 @@ const AddItem = () => {
               className="w-full border rounded-lg p-3"
               value={foodType}
               onChange={(e) =>
-                setFoodType(
-                  e.target.value
-                )
+                setFoodType(e.target.value)
               }
               required
             >
@@ -332,20 +413,25 @@ const AddItem = () => {
             )}
           </div>
 
+          {/* Save Button */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 text-white transition ${loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#ff4d2d] hover:bg-[#e84320]"
-              }`}
+            className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 text-white transition ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#ff4d2d] hover:bg-[#e84320]"
+            }`}
           >
             {loading && (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             )}
 
-            {loading ? "Saving Item..." : "Save Item"}
+            {loading
+              ? "Saving Item..."
+              : "Save Item"}
           </button>
+
         </form>
       </div>
     </div>

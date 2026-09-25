@@ -19,8 +19,9 @@ const useGetCity = () => {
       async (position) => {
         try {
           const { latitude, longitude } =
-            position.coords;
-
+          position.coords;
+          console.log("GPS LATITUDE:", latitude);
+          console.log("GPS LONGITUDE:", longitude);
           const result = await axios.get(
             "https://api.geoapify.com/v1/geocode/reverse",
             {

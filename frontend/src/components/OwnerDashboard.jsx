@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState } from "react";
+import { setMyShops } from "../redux/ownerSlice";
 import axios from "axios";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -17,26 +17,33 @@ import {
   Edit3,
   ArrowRight,
   MapPin,
-  Tag,
   Layers,
 } from "lucide-react";
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
-
-  const myShopData = useSelector((state) => state.owner);
-
-  const shop = myShopData?.myShopData;
+  const dispatch = useDispatch();
+  // ==========================================
+  // OWNER SHOPS
+  // ==========================================
+  const { myShops } = useSelector(
+    (state) => state.owner
+  );
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL;
+  const serverUrl =
+    import.meta.env.VITE_SERVER_URL;
 
   // ==========================================
-  // TOTAL ITEMS
+  // TOTAL ITEMS FROM ALL SHOPS
   // ==========================================
-  const totalItems = shop?.items?.length || 0;
+  const totalItems = myShops.reduce(
+    (total, shop) =>
+      total + (shop.items?.length || 0),
+    0
+  );
 
   // ==========================================
   // FETCH ORDERS
@@ -45,7 +52,8 @@ const OwnerDashboard = () => {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
         setLoading(false);
@@ -62,12 +70,16 @@ const OwnerDashboard = () => {
         }
       );
 
-      setOrders(response.data.orders || []);
+      setOrders(
+        response.data.orders || []
+      );
+
     } catch (error) {
       console.log(
         "Error fetching owner orders:",
         error.response?.data || error
       );
+
     } finally {
       setLoading(false);
     }
@@ -77,41 +89,111 @@ const OwnerDashboard = () => {
     fetchOrders();
   }, []);
 
+  const handleDeleteShop = async (shopId) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this shop?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    const response = await axios.delete(
+      `${serverUrl}/api/shop/delete/${shopId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      }
+    );
+
+    if (response.data.success) {
+
+      // Remove deleted shop from Redux
+      const updatedShops = myShops.filter(
+        (shop) => shop._id !== shopId
+      );
+
+      dispatch(
+        setMyShops(updatedShops)
+      );
+
+      alert("Shop deleted successfully.");
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Delete shop error:",
+      error.response?.data ||
+        error.message
+    );
+
+    alert(
+      error.response?.data?.message ||
+        "Failed to delete shop."
+    );
+  }
+};
   // ==========================================
   // ORDER STATISTICS
   // ==========================================
   const pending = orders.filter(
-    (order) => order.status === "pending"
+    (order) =>
+      order.status === "pending"
   ).length;
 
   const confirmed = orders.filter(
-    (order) => order.status === "confirmed"
+    (order) =>
+      order.status === "confirmed"
   ).length;
 
   const preparing = orders.filter(
-    (order) => order.status === "preparing"
+    (order) =>
+      order.status === "preparing"
   ).length;
 
   const outForDelivery = orders.filter(
-    (order) => order.status === "out-for-delivery"
+    (order) =>
+      order.status === "out-for-delivery"
   ).length;
 
   const delivered = orders.filter(
-    (order) => order.status === "delivered"
+    (order) =>
+      order.status === "delivered"
   ).length;
 
   const cancelled = orders.filter(
-    (order) => order.status === "cancelled"
+    (order) =>
+      order.status === "cancelled"
   ).length;
 
   const activeOrders =
-    confirmed + preparing + outForDelivery;
+    confirmed +
+    preparing +
+    outForDelivery;
 
   const totalSales = orders
-    .filter((order) => order.status === "delivered")
+    .filter(
+      (order) =>
+        order.status === "delivered"
+    )
     .reduce(
       (total, order) =>
-        total + Number(order.totalAmount || 0),
+        total +
+        Number(
+          order.totalAmount || 0
+        ),
       0
     );
 
@@ -164,11 +246,6 @@ const OwnerDashboard = () => {
   ];
 
   // ==========================================
-  // DISPLAY ITEMS
-  // ==========================================
-  const displayItems = shop?.items?.slice(0, 8) || [];
-
-  // ==========================================
   // RETURN
   // ==========================================
   return (
@@ -189,7 +266,7 @@ const OwnerDashboard = () => {
           </h1>
 
           <p className="text-sm text-gray-500 mt-1">
-            Manage your shop, menu and customer orders.
+            Manage your shops, products and customer orders.
           </p>
         </div>
 
@@ -200,79 +277,247 @@ const OwnerDashboard = () => {
         >
           <RefreshCw
             size={17}
-            className={loading ? "animate-spin" : ""}
+            className={
+              loading
+                ? "animate-spin"
+                : ""
+            }
           />
 
-          {loading ? "Refreshing..." : "Refresh"}
+          {loading
+            ? "Refreshing..."
+            : "Refresh"}
         </button>
 
       </div>
 
       {/* ======================================
-          SHOP INFORMATION CARD
+          MY SHOPS
       ====================================== */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-5 mb-6">
+      <div
+        id="my-shops-section"
+        className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-5 mb-6"
+      >
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-5">
 
-          {/* SHOP IMAGE */}
-          {shop?.image ? (
-            <img
-              src={shop.image}
-              alt={shop.name}
-              className="w-20 h-20 rounded-xl object-cover border border-gray-100"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center">
-              <Store
-                size={32}
-                className="text-gray-400"
-              />
-            </div>
-          )}
-
-          {/* SHOP DETAILS */}
-          <div className="flex-1 min-w-0">
+          <div>
 
             <div className="flex items-center gap-2">
 
-              <h2 className="text-xl font-bold text-gray-800 truncate">
-                {shop?.name || "My Shop"}
+              <Store
+                size={20}
+                className="text-orange-500"
+              />
+
+              <h2 className="text-lg font-bold text-gray-800">
+                My Shops
               </h2>
 
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-semibold">
-                ACTIVE
+              <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 text-xs font-semibold">
+                {myShops.length}
               </span>
 
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 mt-1">
-
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <MapPin size={13} />
-                {shop?.city || "City not available"}
-              </span>
-
-              {shop?.address && (
-                <span className="text-xs text-gray-400 truncate max-w-md">
-                  {shop.address}
-                </span>
-              )}
-
-            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Manage all your shops
+            </p>
 
           </div>
 
-          {/* EDIT SHOP */}
+          {/* ADD SHOP */}
           <button
-            onClick={() => navigate("/create-edit-shop")}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#ff4d2d] text-white rounded-lg text-sm font-semibold hover:bg-[#e63e20] transition"
+            onClick={() =>
+              navigate("/owner/shop/add")
+            }
+            className="flex items-center gap-2 px-3 py-2 bg-[#ff4d2d] text-white rounded-lg text-sm font-semibold hover:bg-[#e63e20] transition"
           >
-            <Edit3 size={16} />
-            Edit Shop
+            <PlusCircle size={16} />
+            Add Shop
           </button>
 
         </div>
+
+        {/* SHOP CARDS */}
+        {myShops.length === 0 ? (
+
+          <div className="py-8 text-center">
+
+            <Store
+              size={40}
+              className="mx-auto text-gray-300 mb-3"
+            />
+
+            <h3 className="text-sm font-semibold text-gray-700">
+              No shops yet
+            </h3>
+
+            <p className="text-xs text-gray-400 mt-1 mb-4">
+              Create your first shop to get started.
+            </p>
+
+            <button
+              onClick={() =>
+                navigate("/owner/shop/add")
+              }
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff4d2d] text-white text-sm rounded-lg hover:bg-[#e63e20] transition"
+            >
+              <PlusCircle size={16} />
+              Create Shop
+            </button>
+
+          </div>
+
+        ) : (
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+            {myShops.map((shop) => (
+
+              <div
+                key={shop._id}
+                className="border border-gray-200 rounded-xl p-3 hover:shadow-md transition"
+              >
+
+                {/* SHOP TOP */}
+                <div className="flex gap-3">
+
+                  {/* SHOP IMAGE */}
+                  {shop.image ? (
+
+                    <img
+                      src={shop.image}
+                      alt={shop.name}
+                      className="w-20 h-20 rounded-xl object-cover border border-gray-100 flex-shrink-0"
+                    />
+
+                  ) : (
+
+                    <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+
+                      <Store
+                        size={30}
+                        className="text-gray-400"
+                      />
+
+                    </div>
+
+                  )}
+
+                  {/* SHOP DETAILS */}
+                  <div className="flex-1 min-w-0">
+
+                    <div className="flex items-center gap-2">
+
+                      <h3 className="font-bold text-gray-800 truncate">
+                        {shop.name}
+                      </h3>
+
+                      <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-semibold">
+                        ACTIVE
+                      </span>
+
+                    </div>
+
+                    <div className="flex items-center gap-1 mt-1">
+
+                      <MapPin
+                        size={12}
+                        className="text-gray-400"
+                      />
+
+                      <span className="text-xs text-gray-500 truncate">
+                        {shop.city}
+                      </span>
+
+                    </div>
+
+                    <div className="flex items-center gap-1 mt-1">
+
+                      <Package
+                        size={12}
+                        className="text-gray-400"
+                      />
+
+                      <span className="text-xs text-gray-500">
+                        {shop.items?.length || 0} items
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* ADDRESS */}
+                {shop.address && (
+
+                  <p className="text-xs text-gray-400 mt-3 truncate">
+                    {shop.address}
+                  </p>
+
+                )}
+
+                {/* ACTIONS */}
+                <div className="flex gap-2 mt-3">
+
+                  {/* EDIT SHOP */}
+                  {/* ACTIONS */}
+<div className="flex gap-2 mt-3">
+
+  {/* EDIT SHOP */}
+  <button
+    onClick={() =>
+      navigate(
+        `/owner/shop/${shop._id}`
+      )
+    }
+    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-semibold hover:bg-orange-100 transition"
+  >
+    <Edit3 size={14} />
+    Edit
+  </button>
+
+  {/* ADD ITEM */}
+  <button
+    onClick={() =>
+      navigate(
+        `/owner/shop/${shop._id}/add-item`
+      )
+    }
+    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg text-xs font-semibold hover:bg-green-100 transition"
+  >
+    <PlusCircle size={14} />
+    Add Item
+  </button>
+
+  {/* DELETE SHOP */}
+  <button
+    onClick={() =>
+      handleDeleteShop(shop._id)
+    }
+    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition"
+  >
+    <XCircle size={14} />
+    Delete
+  </button>
+
+</div>
+
+                  {/* ADD ITEM */}
+                 
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
 
       </div>
 
@@ -300,7 +545,9 @@ const OwnerDashboard = () => {
                   </p>
 
                   <h2 className="text-2xl font-bold text-gray-800 mt-1">
-                    {loading ? "..." : stat.value}
+                    {loading
+                      ? "..."
+                      : stat.value}
                   </h2>
 
                 </div>
@@ -319,179 +566,6 @@ const OwnerDashboard = () => {
             </div>
           );
         })}
-
-      </div>
-
-      {/* ======================================
-          MENU ITEMS SECTION
-      ====================================== */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm mb-7">
-
-        {/* SECTION HEADER */}
-        <div className="flex items-center justify-between px-4 md:px-5 py-4 border-b border-gray-100">
-
-          <div>
-
-            <div className="flex items-center gap-2">
-
-              <Package
-                size={19}
-                className="text-orange-500"
-              />
-
-              <h2 className="text-lg font-bold text-gray-800">
-                My Menu Items
-              </h2>
-
-              <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 text-xs font-semibold">
-                {totalItems}
-              </span>
-
-            </div>
-
-            <p className="text-xs text-gray-500 mt-1">
-              Items added to your shop menu
-            </p>
-
-          </div>
-
-          <button
-            onClick={() => navigate("/owner/items")}
-            className="flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
-          >
-            View All
-            <ArrowRight size={15} />
-          </button>
-
-        </div>
-
-        {/* ITEMS */}
-        {totalItems === 0 ? (
-
-          <div className="py-10 text-center">
-
-            <Package
-              size={40}
-              className="mx-auto text-gray-300 mb-3"
-            />
-
-            <h3 className="text-sm font-semibold text-gray-700">
-              No menu items yet
-            </h3>
-
-            <p className="text-xs text-gray-400 mt-1 mb-4">
-              Start adding products to your shop menu.
-            </p>
-
-            <button
-              onClick={() => navigate("/add-item")}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff4d2d] text-white text-sm rounded-lg hover:bg-[#e63e20] transition"
-            >
-              <PlusCircle size={16} />
-              Add First Item
-            </button>
-
-          </div>
-
-        ) : (
-
-          <div className="p-4">
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-
-              {displayItems.map((item) => (
-
-                <div
-                  key={item._id}
-                  className="border border-gray-200 rounded-xl p-2.5 hover:shadow-md transition bg-white"
-                >
-
-                  <div className="flex gap-3">
-
-                    {/* ITEM IMAGE */}
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <Package
-                          size={22}
-                          className="text-gray-400"
-                        />
-                      </div>
-                    )}
-
-                    {/* ITEM INFO */}
-                    <div className="flex-1 min-w-0">
-
-                      <h3
-                        className="text-sm font-semibold text-gray-800 truncate"
-                        title={item.name}
-                      >
-                        {item.name}
-                      </h3>
-
-                      <div className="flex items-center gap-1 mt-1">
-
-                        <Tag
-                          size={11}
-                          className="text-gray-400"
-                        />
-
-                        <span className="text-[11px] text-gray-500 truncate">
-                          {item.category || "General"}
-                        </span>
-
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2">
-
-                        <div>
-
-                          <span className="text-sm font-bold text-orange-600">
-                            Rs. {Number(item.price || 0).toLocaleString()}
-                          </span>
-
-                          {item.unit && (
-                            <span className="text-[10px] text-gray-400 ml-1">
-                              / {item.unit}
-                            </span>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-            {/* SHOW MORE */}
-            {totalItems > 8 && (
-              <div className="text-center mt-4">
-
-                <button
-                  onClick={() => navigate("/owner/items")}
-                  className="text-sm font-medium text-orange-600 hover:text-orange-700"
-                >
-                  View all {totalItems} items →
-                </button>
-
-              </div>
-            )}
-
-          </div>
-
-        )}
 
       </div>
 
@@ -516,19 +590,23 @@ const OwnerDashboard = () => {
 
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
           {/* MANAGE ORDERS */}
           <button
-            onClick={() => navigate("/owner/orders")}
+            onClick={() =>
+              navigate("/owner/orders")
+            }
             className="group bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition text-left"
           >
 
             <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center">
+
               <ShoppingBag
                 className="text-orange-500"
                 size={20}
               />
+
             </div>
 
             <h3 className="font-semibold text-sm text-gray-800 mt-3">
@@ -540,26 +618,33 @@ const OwnerDashboard = () => {
             </p>
 
             <div className="flex items-center gap-1 text-xs text-orange-500 font-medium mt-3">
+
               Open Orders
+
               <ArrowRight
                 size={13}
                 className="group-hover:translate-x-1 transition"
               />
+
             </div>
 
           </button>
 
           {/* MANAGE ITEMS */}
           <button
-            onClick={() => navigate("/owner/items")}
+            onClick={() =>
+              navigate("/owner/items")
+            }
             className="group bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition text-left"
           >
 
             <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center">
+
               <Layers
                 className="text-orange-500"
                 size={20}
               />
+
             </div>
 
             <h3 className="font-semibold text-sm text-gray-800 mt-3">
@@ -571,42 +656,14 @@ const OwnerDashboard = () => {
             </p>
 
             <div className="flex items-center gap-1 text-xs text-orange-500 font-medium mt-3">
+
               Manage Menu
+
               <ArrowRight
                 size={13}
                 className="group-hover:translate-x-1 transition"
               />
-            </div>
 
-          </button>
-
-          {/* ADD ITEM */}
-          <button
-            onClick={() => navigate("/add-item")}
-            className="group bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition text-left"
-          >
-
-            <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center">
-              <PlusCircle
-                className="text-orange-500"
-                size={20}
-              />
-            </div>
-
-            <h3 className="font-semibold text-sm text-gray-800 mt-3">
-              Add New Item
-            </h3>
-
-            <p className="text-xs text-gray-500 mt-1">
-              Add another product to your shop menu.
-            </p>
-
-            <div className="flex items-center gap-1 text-xs text-orange-500 font-medium mt-3">
-              Add Item
-              <ArrowRight
-                size={13}
-                className="group-hover:translate-x-1 transition"
-              />
             </div>
 
           </button>
@@ -620,4 +677,3 @@ const OwnerDashboard = () => {
 };
 
 export default OwnerDashboard;
-

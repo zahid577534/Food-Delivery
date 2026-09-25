@@ -18,6 +18,15 @@ image: {
   type: String,
   required: false
 },
+facebookPage: {
+  type: String,
+  default: "",
+},
+
+whatsapp: {
+  type: String,
+  default: "",
+},
   city: {
     type: String,
     required: true

@@ -15,7 +15,7 @@ itemRouter.get("/test", (req, res) => {
 });
 
 itemRouter.post(
-  "/add-item",
+  "/add-item/:shopId",
   isAuth,
   upload.single("image"),
   addItem
@@ -27,6 +27,7 @@ itemRouter.post(
   upload.single("image"),
   editItem
 );
+
 itemRouter.delete(
   "/delete/:id",
   isAuth,
